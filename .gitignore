@@ -1,0 +1,5 @@
+.idea
+ci/out
+ci/in
+ci/check
+**/.DS_Store
