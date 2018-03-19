@@ -1,6 +1,6 @@
 # Slack API Resource
 
-A resource for using the [slack API](https://api.slack.com/) implemented using either the legacy token or OAuth2 token returned when creating a slack app.
+A [Concourse](https://concourse-ci.org/) resource for using the [slack API](https://api.slack.com/) implemented using either the legacy token or OAuth2 token returned when creating a slack app.
 
 Note that this differs from the [slack-notification-resource](https://github.com/cloudfoundry-community/slack-notification-resource)
 as it uses the slack API rather than the slack webhook, therefore allowing for use of all slack API functionality and not just message posting.
@@ -74,7 +74,7 @@ Note that the tests are run as part of the Docker build, and the build will fail
 
     docker build -t slack-api-resource .
 
-You can also test with the script end-to-end by starting that container in interactive mode via\
+You can also test with the script end-to-end by starting that container in interactive mode via
 
     docker run -it slack-api-resource bash
 
@@ -88,4 +88,4 @@ and then calling the script of your choice. As an example, to execute posting a 
 
 ### Publishing to public docker registry
 
-Currently you'll need to build and push to your local registry until we build support for this in the public docker registry
+Currently you'll need to build and push to your local registry until we build support for this in the public docker registry.
