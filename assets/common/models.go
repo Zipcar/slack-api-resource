@@ -15,6 +15,7 @@ type ConcourseParams struct {
 	//postMessage Params
 	Channel         string `json:"channel"`
 	AttachmentsFile string `json:"attachments_file"`
+  Attachments     string `json:"attachments"`
 	IconUrl         string `json:"icon_url"`
 	Username        string `json:"username"`
 }

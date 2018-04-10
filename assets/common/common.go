@@ -51,6 +51,13 @@ func HandleFatalError(err error, msg string) {
 	os.Exit(1)
 }
 
+func HandleNonFatalError(err error, msg string) {
+  if err == nil {
+    return
+  }
+  fmt.Fprintln(os.Stderr, fmt.Sprintf("%s: %s", msg, err.Error()))
+}
+
 func ValidateAndBuildPostBody(input ConcourseInput) (string, url.Values, error) {
 	var method = ""
 	var exists = false
@@ -74,20 +81,17 @@ func ValidateAndBuildPostBody(input ConcourseInput) (string, url.Values, error) 
 func ValidateAndBuildPostBodyPostMessage(input ConcourseInput) (url.Values, error) {
 	data := url.Values{}
 
-	fileContents, err := ioutil.ReadFile(input.Params.AttachmentsFile)
-	if err != nil {
-		return data, err
-	}
-
-	attachmentString := ExpandEnv(string(fileContents))
+  attachmentsStringRaw, err := ValidatePostMessageAttachments(input.Params.Attachments, input.Params.AttachmentsFile)
+  if err != nil {
+    attachmentsStringRaw = "[{\"title\": \"[INTERNAL ERROR] Failed to parse string to post to slack\", \"color\": \"danger\"}]"
+  }
+	attachmentString := ExpandEnv(attachmentsStringRaw)
 
 	switch "" {
 		case input.Source.Token:
 			return nil, errors.New(fmt.Sprintf("Token is a required param"))
 		case input.Params.Channel:
 			return nil, errors.New(fmt.Sprintf("Channel is a required param"))
-		case attachmentString:
-			return nil, errors.New(fmt.Sprintf("Attachments is a required param, supplied file is empty"))
 	}
 
 	data.Set("attachments", attachmentString)
@@ -98,6 +102,32 @@ func ValidateAndBuildPostBodyPostMessage(input ConcourseInput) (url.Values, erro
 	if input.Params.Username != "" { data.Set("username", input.Params.Username) }
 
 	return data, nil
+}
+
+func ValidatePostMessageAttachments(attachments string, attachmentsFile string) (string, error) {
+  if attachments != "" && attachmentsFile != "" {
+    err := errors.New(fmt.Sprintf("cannot supply both attachmentsFile and attachments for Chat.PostMessage"))
+    return "", err
+  }
+  if attachments == "" && attachmentsFile == "" {
+    err := errors.New(fmt.Sprintf("must supply one of attachmentsFile or attachments for Chat.PostMessage"))
+    return "", err
+  }
+
+  if attachments != "" {
+    return attachments, nil
+  } else {
+    attachmentsStringRawBytes, err := ioutil.ReadFile(attachmentsFile)
+    if err != nil {
+      return "", err
+    }
+    attachmentsStringRaw := string(attachmentsStringRawBytes)
+    if attachmentsStringRaw == "" {
+      err := errors.New(fmt.Sprintf("attachments file is empty"))
+      return "", err
+    }
+    return attachmentsStringRaw, nil
+  }
 }
 
 func ValidateAndBuildPostBodyFilesUpload(input ConcourseInput) (url.Values, error) {
