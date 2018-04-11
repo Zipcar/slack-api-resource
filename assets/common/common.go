@@ -83,6 +83,7 @@ func ValidateAndBuildPostBodyPostMessage(input ConcourseInput) (url.Values, erro
 
   attachmentsStringRaw, err := ValidatePostMessageAttachments(input.Params.Attachments, input.Params.AttachmentsFile)
   if err != nil {
+    HandleNonFatalError(err, "Error validating attachments contents")
     attachmentsStringRaw = "[{\"title\": \"[INTERNAL ERROR] Failed to parse string to post to slack\", \"color\": \"danger\"}]"
   }
 	attachmentString := ExpandEnv(attachmentsStringRaw)
