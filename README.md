@@ -49,14 +49,18 @@ Note that you can ONLY use `file` or `content`, not both
 
 ### Chat.PostMessage
 
-Currently only supports posting `attachments` property via a file.
+Currently only supports posting `attachments` property in the slack message, and not other top level properties.
 
 1) channel - specify what channel to post to
 1) attachments_file - the array of attachments to post, passed in as a JSON file from a task or resource in the job
+1) attachments - the array of attachments to post
 1) icon_url (optional) - url for the icon to use in post
 1) username (optional) - user to post as
 
-Example attachments_file would be a path to a file with contents:
+Note that you can ONLY use `attachments_file` or `attachments`, not both
+
+Example attachments_file would be a path to a file with the following contents.  
+Or you could pass this in as the value of attachments directly:
 ```
 [
   { 
