@@ -56,6 +56,7 @@ Currently only supports posting `attachments` property in the slack message, and
 1) attachments - the array of attachments to post
 1) icon_url (optional) - url for the icon to use in post
 1) username (optional) - user to post as
+1) link_names (optional) - enables user/channel linking in attachment
 
 Note that you can ONLY use `attachments_file` or `attachments`, not both
 
@@ -88,7 +89,7 @@ and then calling the script of your choice. As an example, to execute posting a 
     export SLACK_TOKEN=REDACTED
     export TEST_SLACK_CHANNEL=REDACTED
     echo '[{ "title": "test attachment 1", "text": "test attachment 1 text" }]' > msg_attachments.json
-    echo "{\"source\": { \"token\" :\"${SLACK_TOKEN}\", \"method\": \"chat.postMessage\" }, \"params\": { \"attachments_file\": \"msg_attachments.json\", \"channel\" : \"${TEST_SLACK_CHANNEL}\", \"icon_url\": \"http://cl.ly/image/3e1h0H3H2s0P/concourse-logo.png\", \"username\": \"concourse\"}}" | ./out .
+    echo "{\"source\": { \"token\" :\"${SLACK_TOKEN}\", \"method\": \"chat.postMessage\" }, \"params\": { \"attachments_file\": \"msg_attachments.json\", \"channel\" : \"${TEST_SLACK_CHANNEL}\", \"icon_url\": \"http://cl.ly/image/3e1h0H3H2s0P/concourse-logo.png\", \"username\": \"concourse\", \"link_names\": \"1\"}}" | ./out .
 
 ### Publishing to public docker registry
 
