@@ -18,7 +18,7 @@ type ConcourseParams struct {
 	Attachments     string `json:"attachments"`
 	IconUrl         string `json:"icon_url"`
 	Username        string `json:"username"`
-	LinkNames		string `json:"link_names"`
+	LinkNames       string `json:"link_names"`
 }
 
 type ConcourseInput struct {
