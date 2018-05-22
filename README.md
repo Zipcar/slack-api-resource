@@ -89,7 +89,7 @@ and then calling the script of your choice. As an example, to execute posting a 
     export SLACK_TOKEN=REDACTED
     export TEST_SLACK_CHANNEL=REDACTED
     echo '[{ "title": "test attachment 1", "text": "test attachment 1 text" }]' > msg_attachments.json
-    echo "{\"source\": { \"token\" :\"${SLACK_TOKEN}\", \"method\": \"chat.postMessage\" }, \"params\": { \"attachments_file\": \"msg_attachments.json\", \"channel\" : \"${TEST_SLACK_CHANNEL}\", \"icon_url\": \"http://cl.ly/image/3e1h0H3H2s0P/concourse-logo.png\", \"username\": \"concourse\", \"link_names\": \"1\"}}" | ./out .
+    echo "{\"source\": { \"token\" :\"${SLACK_TOKEN}\", \"method\": \"chat.postMessage\" }, \"params\": { \"attachments_file\": \"msg_attachments.json\", \"channel\" : \"${TEST_SLACK_CHANNEL}\", \"icon_url\": \"http://cl.ly/image/3e1h0H3H2s0P/concourse-logo.png\", \"username\": \"concourse\", \"link_names\": 1}}" | ./out .
 
 ### Publishing to public docker registry
 

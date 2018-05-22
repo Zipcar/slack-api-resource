@@ -98,8 +98,8 @@ func ValidateAndBuildPostBodyPostMessage(input ConcourseInput) (url.Values, erro
 	data.Set("attachments", attachmentString)
 	data.Set("token", input.Source.Token)
 	data.Set("channel", input.Params.Channel)
+	data.Set("link_names", strconv.Itoa(input.Params.LinkNames))
 
-	if input.Params.LinkNames != "" { data.Set("link_names", input.Params.LinkNames) }
 	if input.Params.IconUrl != "" { data.Set("icon_url", input.Params.IconUrl) }
 	if input.Params.Username != "" { data.Set("username", input.Params.Username) }
 
