@@ -1,9 +1,10 @@
 package main
 
 import (
-    "fmt"
-    "./common"
-    "os"
+	"fmt"
+	"os"
+
+	"./common"
 )
 
 func main() {
@@ -23,4 +24,3 @@ func main() {
 	// Change this to the ID of the returned resource
 	fmt.Println(`{"version":{"ref":"none"}}`)
 }
-
