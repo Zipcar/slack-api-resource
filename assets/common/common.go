@@ -184,7 +184,7 @@ func PostToSlack(path string, data url.Values) (SlackResponse, error) {
 	}
 	responseString := string(responseBytes)
 	if resp.StatusCode != 200 {
-		fmt.Printf(responseString)
+		fmt.Fprintf(os.Stderr, responseString)
 		return responseObject, errors.New(fmt.Sprintf("Expected 200 response code but got %v", resp.StatusCode))
 	}
 
@@ -193,7 +193,7 @@ func PostToSlack(path string, data url.Values) (SlackResponse, error) {
 		return responseObject, parseErr
 	}
 	if !responseObject.Ok {
-		fmt.Printf("%s\n", responseString)
+		fmt.Fprintf(os.Stderr, "%s\n", responseString)
 		return responseObject, errors.New("Slack API returned 'ok': false ")
 	}
 
