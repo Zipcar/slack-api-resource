@@ -95,18 +95,17 @@ func ValidateAndBuildPostBodyPostMessage(input ConcourseInput) (data url.Values,
 
 	attachments := []Attachment{}
 	err = json.Unmarshal([]byte(attachmentString), &attachments)
-	if err != nil {
-		return data, err, false
-	}
-	if len(attachments) != 0 {
-		hasText := false
-		for _, a := range attachments {
-			if len(a.Text) != 0 {
-				hasText = true
+	if err == nil {
+		if len(attachments) != 0 {
+			hasText := false
+			for _, a := range attachments {
+				if len(a.Text) != 0 {
+					hasText = true
+				}
 			}
-		}
-		if !hasText {
-			return data, err, true
+			if !hasText {
+				return data, err, true
+			}
 		}
 	}
 	switch "" {
