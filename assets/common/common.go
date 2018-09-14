@@ -78,6 +78,7 @@ func ValidateAndBuildPostBody(input ConcourseInput) (method string, values url.V
 
 func ValidateAndBuildPostBodyPostMessage(input ConcourseInput) (data url.Values, err error, empty bool) {
 	data = url.Values{}
+
 	attachmentsStringRaw, err := ValidatePostMessageAttachments(input.Params.Attachments, input.Params.AttachmentsFile)
 	if err != nil {
 		HandleNonFatalError(err, "Error validating attachments contents")
@@ -107,6 +108,12 @@ func ValidateAndBuildPostBodyPostMessage(input ConcourseInput) (data url.Values,
 		if !hasText {
 			return data, err, true
 		}
+	}
+	switch "" {
+	case input.Source.Token:
+		return nil, errors.New(fmt.Sprintf("Token is a required param")), false
+	case input.Params.Channel:
+		return nil, errors.New(fmt.Sprintf("Channel is a required param")), false
 	}
 
 	data.Set("attachments", attachmentString)
@@ -199,7 +206,7 @@ func PostToSlack(path string, data url.Values) (SlackResponse, error) {
 	}
 	responseString := string(responseBytes)
 	if resp.StatusCode != 200 {
-		fmt.Printf(responseString)
+		fmt.Fprintf(os.Stderr, responseString)
 		return responseObject, errors.New(fmt.Sprintf("Expected 200 response code but got %v", resp.StatusCode))
 	}
 
@@ -208,7 +215,7 @@ func PostToSlack(path string, data url.Values) (SlackResponse, error) {
 		return responseObject, parseErr
 	}
 	if !responseObject.Ok {
-		fmt.Printf("%s\n", responseString)
+		fmt.Fprintf(os.Stderr, "%s\n", responseString)
 		return responseObject, errors.New("Slack API returned 'ok': false ")
 	}
 
