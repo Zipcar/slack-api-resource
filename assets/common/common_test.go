@@ -23,7 +23,7 @@ func TestValidateAndBuildBody_FilesUpload_Content(t *testing.T) {
 		"channels": input.Params.Channels,
 	}
 
-	method, data, err := common.ValidateAndBuildPostBody(input)
+	method, data, err, _ := common.ValidateAndBuildPostBody(input)
 
 	if err != nil {
 		t.Errorf("Unexpected error, got: %s, want: %v.", err.Error(), nil)
@@ -78,13 +78,43 @@ func TestValidatePostMessageAttachments_BothAttachmentsAndFile(t *testing.T) {
 	}
 }
 
+func TestMessage(t *testing.T) {
+	input := common.ConcourseInput{}
+	input.Source.Method = "chat.postMessage"
+	input.Params.AttachmentsFile = "example.json"
+	input.Source.Token = "validToken"
+	input.Params.Channel = "mychannel1"
+	_, data, err, _ := common.ValidateAndBuildPostBody(input)
+
+	if err != nil {
+		t.Errorf("Unexpected error %s", err.Error())
+	}
+	if len(data.Get("attachments")) == 0 {
+		t.Errorf("Expected attahments to exist")
+	}
+}
+func TestEmptyMessage(t *testing.T) {
+	input := common.ConcourseInput{}
+	input.Source.Method = "chat.postMessage"
+	input.Params.AttachmentsFile = "empty.json"
+	input.Source.Token = "validToken"
+	input.Params.Channel = "mychannel1"
+	_, _, err, empty := common.ValidateAndBuildPostBody(input)
+
+	if err != nil {
+		t.Errorf("Unexpected error %s", err.Error())
+	}
+	if !empty {
+		t.Error("ValidateAndBuildPostBody didnt return an empty message of true when sent an emtpy message")
+	}
+}
 func TestValidateAndBuildBody_InvalidMethod(t *testing.T) {
 	input := common.ConcourseInput{}
 	input.Source.Method = "invalid.method"
 
 	expectedErrorMessage := fmt.Sprintf("Method '%s' does not exist", input.Source.Method)
 
-	_, _, err := common.ValidateAndBuildPostBody(input)
+	_, _, err, _ := common.ValidateAndBuildPostBody(input)
 
 	if err == nil {
 		t.Errorf("Expected error, got nil")

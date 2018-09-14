@@ -58,27 +58,26 @@ func HandleNonFatalError(err error, msg string) {
 	fmt.Fprintln(os.Stderr, fmt.Sprintf("%s: %s", msg, err.Error()))
 }
 
-func ValidateAndBuildPostBody(input ConcourseInput) (string, url.Values, error) {
-	var method = ""
+func ValidateAndBuildPostBody(input ConcourseInput) (method string, values url.Values, err error, emtpy bool) {
 	var exists = false
 	if method, exists = slackMethodPaths[input.Source.Method]; exists == false {
-		return "", nil, errors.New(fmt.Sprintf("Method '%s' does not exist", input.Source.Method))
+		return "", nil, errors.New(fmt.Sprintf("Method '%s' does not exist", input.Source.Method)), false
 	}
 
 	switch input.Source.Method {
 	case MethodFilesUpload:
 		data, err := ValidateAndBuildPostBodyFilesUpload(input)
-		return method, data, err
+		return method, data, err, false
 	case MethodChatPostmessage:
-		data, err := ValidateAndBuildPostBodyPostMessage(input)
-		return method, data, err
+		data, err, empty := ValidateAndBuildPostBodyPostMessage(input)
+		return method, data, err, empty
 	default:
-		return "", nil, errors.New(fmt.Sprintf("No implementation for building POST body for method '%s'", input.Source.Method))
+		return "", nil, errors.New(fmt.Sprintf("No implementation for building POST body for method '%s'", input.Source.Method)), false
 	}
 }
 
-func ValidateAndBuildPostBodyPostMessage(input ConcourseInput) (url.Values, error) {
-	data := url.Values{}
+func ValidateAndBuildPostBodyPostMessage(input ConcourseInput) (data url.Values, err error, empty bool) {
+	data = url.Values{}
 
 	attachmentsStringRaw, err := ValidatePostMessageAttachments(input.Params.Attachments, input.Params.AttachmentsFile)
 	if err != nil {
@@ -89,9 +88,31 @@ func ValidateAndBuildPostBodyPostMessage(input ConcourseInput) (url.Values, erro
 
 	switch "" {
 	case input.Source.Token:
-		return nil, errors.New(fmt.Sprintf("Token is a required param"))
+		return nil, errors.New(fmt.Sprintf("Token is a required param")), false
 	case input.Params.Channel:
-		return nil, errors.New(fmt.Sprintf("Channel is a required param"))
+		return nil, errors.New(fmt.Sprintf("Channel is a required param")), false
+	}
+
+	attachments := []Attachment{}
+	err = json.Unmarshal([]byte(attachmentString), &attachments)
+	if err == nil {
+		if len(attachments) != 0 {
+			hasText := false
+			for _, a := range attachments {
+				if len(a.Text) != 0 {
+					hasText = true
+				}
+			}
+			if !hasText {
+				return data, err, true
+			}
+		}
+	}
+	switch "" {
+	case input.Source.Token:
+		return nil, errors.New(fmt.Sprintf("Token is a required param")), false
+	case input.Params.Channel:
+		return nil, errors.New(fmt.Sprintf("Channel is a required param")), false
 	}
 
 	data.Set("attachments", attachmentString)
@@ -106,7 +127,7 @@ func ValidateAndBuildPostBodyPostMessage(input ConcourseInput) (url.Values, erro
 		data.Set("username", input.Params.Username)
 	}
 
-	return data, nil
+	return data, nil, false
 }
 
 func ValidatePostMessageAttachments(attachments string, attachmentsFile string) (string, error) {

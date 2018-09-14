@@ -27,6 +27,10 @@ type ConcourseInput struct {
 	Version ConcourseVersion `json:"version"`
 }
 
+type Attachment struct {
+	Text string `json:"text"`
+}
+
 type ConcourseVersion struct {
 	Ref string `json:"ref"`
 }
