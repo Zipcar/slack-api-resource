@@ -2,27 +2,27 @@ package common
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
-	"bytes"
-    "net/http"
-    "net/url"
 	"io/ioutil"
-	"strings"
+	"net/http"
+	"net/url"
+	"os"
 	"regexp"
 	"strconv"
+	"strings"
 )
 
 const (
-	SlackApiUrl = "https://slack.com"
-  	MethodFilesUpload = "files.upload"
-  	MethodChatPostmessage = "chat.postMessage"
+	SlackApiUrl           = "https://slack.com"
+	MethodFilesUpload     = "files.upload"
+	MethodChatPostmessage = "chat.postMessage"
 )
 
 var slackMethodPaths = map[string]string{
-	MethodFilesUpload: "api/files.upload",
+	MethodFilesUpload:     "api/files.upload",
 	MethodChatPostmessage: "api/chat.postMessage",
 }
 
@@ -52,47 +52,61 @@ func HandleFatalError(err error, msg string) {
 }
 
 func HandleNonFatalError(err error, msg string) {
-  if err == nil {
-    return
-  }
-  fmt.Fprintln(os.Stderr, fmt.Sprintf("%s: %s", msg, err.Error()))
+	if err == nil {
+		return
+	}
+	fmt.Fprintln(os.Stderr, fmt.Sprintf("%s: %s", msg, err.Error()))
 }
 
-func ValidateAndBuildPostBody(input ConcourseInput) (string, url.Values, error) {
-	var method = ""
+func ValidateAndBuildPostBody(input ConcourseInput) (method string, values url.Values, err error, emtpy bool) {
 	var exists = false
 	if method, exists = slackMethodPaths[input.Source.Method]; exists == false {
-	    return "", nil, errors.New(fmt.Sprintf("Method '%s' does not exist", input.Source.Method))
+		return "", nil, errors.New(fmt.Sprintf("Method '%s' does not exist", input.Source.Method)), false
 	}
 
 	switch input.Source.Method {
-		case MethodFilesUpload:
-			data, err := ValidateAndBuildPostBodyFilesUpload(input)
-			return method, data, err
-		case MethodChatPostmessage:
-			data, err := ValidateAndBuildPostBodyPostMessage(input)
-			return method, data, err
-		default:
-			return "", nil, errors.New(fmt.Sprintf("No implementation for building POST body for method '%s'", input.Source.Method))
+	case MethodFilesUpload:
+		data, err := ValidateAndBuildPostBodyFilesUpload(input)
+		return method, data, err, false
+	case MethodChatPostmessage:
+		data, err, empty := ValidateAndBuildPostBodyPostMessage(input)
+		return method, data, err, empty
+	default:
+		return "", nil, errors.New(fmt.Sprintf("No implementation for building POST body for method '%s'", input.Source.Method)), false
 	}
-	return "", nil, nil
 }
 
-func ValidateAndBuildPostBodyPostMessage(input ConcourseInput) (url.Values, error) {
-	data := url.Values{}
-
-  attachmentsStringRaw, err := ValidatePostMessageAttachments(input.Params.Attachments, input.Params.AttachmentsFile)
-  if err != nil {
-    HandleNonFatalError(err, "Error validating attachments contents")
-    attachmentsStringRaw = "[{\"title\": \"[INTERNAL ERROR] Failed to parse string to post to slack\", \"color\": \"danger\"}]"
-  }
+func ValidateAndBuildPostBodyPostMessage(input ConcourseInput) (data url.Values, err error, empty bool) {
+	data = url.Values{}
+	attachmentsStringRaw, err := ValidatePostMessageAttachments(input.Params.Attachments, input.Params.AttachmentsFile)
+	if err != nil {
+		HandleNonFatalError(err, "Error validating attachments contents")
+		attachmentsStringRaw = "[{\"title\": \"[INTERNAL ERROR] Failed to parse string to post to slack\", \"color\": \"danger\"}]"
+	}
 	attachmentString := ExpandEnv(attachmentsStringRaw)
 
 	switch "" {
-		case input.Source.Token:
-			return nil, errors.New(fmt.Sprintf("Token is a required param"))
-		case input.Params.Channel:
-			return nil, errors.New(fmt.Sprintf("Channel is a required param"))
+	case input.Source.Token:
+		return nil, errors.New(fmt.Sprintf("Token is a required param")), false
+	case input.Params.Channel:
+		return nil, errors.New(fmt.Sprintf("Channel is a required param")), false
+	}
+
+	attachments := []Attachment{}
+	err = json.Unmarshal([]byte(attachmentString), &attachments)
+	if err != nil {
+		return data, err, false
+	}
+	if len(attachments) != 0 {
+		hasText := false
+		for _, a := range attachments {
+			if len(a.Text) != 0 {
+				hasText = true
+			}
+		}
+		if !hasText {
+			return data, err, true
+		}
 	}
 
 	data.Set("attachments", attachmentString)
@@ -100,36 +114,40 @@ func ValidateAndBuildPostBodyPostMessage(input ConcourseInput) (url.Values, erro
 	data.Set("channel", input.Params.Channel)
 	data.Set("link_names", strconv.Itoa(input.Params.LinkNames))
 
-	if input.Params.IconUrl != "" { data.Set("icon_url", input.Params.IconUrl) }
-	if input.Params.Username != "" { data.Set("username", input.Params.Username) }
+	if input.Params.IconUrl != "" {
+		data.Set("icon_url", input.Params.IconUrl)
+	}
+	if input.Params.Username != "" {
+		data.Set("username", input.Params.Username)
+	}
 
-	return data, nil
+	return data, nil, false
 }
 
 func ValidatePostMessageAttachments(attachments string, attachmentsFile string) (string, error) {
-  if attachments != "" && attachmentsFile != "" {
-    err := errors.New(fmt.Sprintf("cannot supply both attachmentsFile and attachments for Chat.PostMessage"))
-    return "", err
-  }
-  if attachments == "" && attachmentsFile == "" {
-    err := errors.New(fmt.Sprintf("must supply one of attachmentsFile or attachments for Chat.PostMessage"))
-    return "", err
-  }
+	if attachments != "" && attachmentsFile != "" {
+		err := errors.New(fmt.Sprintf("cannot supply both attachmentsFile and attachments for Chat.PostMessage"))
+		return "", err
+	}
+	if attachments == "" && attachmentsFile == "" {
+		err := errors.New(fmt.Sprintf("must supply one of attachmentsFile or attachments for Chat.PostMessage"))
+		return "", err
+	}
 
-  if attachments != "" {
-    return attachments, nil
-  } else {
-    attachmentsStringRawBytes, err := ioutil.ReadFile(attachmentsFile)
-    if err != nil {
-      return "", err
-    }
-    attachmentsStringRaw := string(attachmentsStringRawBytes)
-    if attachmentsStringRaw == "" {
-      err := errors.New(fmt.Sprintf("attachments file is empty"))
-      return "", err
-    }
-    return attachmentsStringRaw, nil
-  }
+	if attachments != "" {
+		return attachments, nil
+	} else {
+		attachmentsStringRawBytes, err := ioutil.ReadFile(attachmentsFile)
+		if err != nil {
+			return "", err
+		}
+		attachmentsStringRaw := string(attachmentsStringRawBytes)
+		if attachmentsStringRaw == "" {
+			err := errors.New(fmt.Sprintf("attachments file is empty"))
+			return "", err
+		}
+		return attachmentsStringRaw, nil
+	}
 }
 
 func ValidateAndBuildPostBodyFilesUpload(input ConcourseInput) (url.Values, error) {
@@ -162,40 +180,39 @@ func ValidateAndBuildPostBodyFilesUpload(input ConcourseInput) (url.Values, erro
 func PostToSlack(path string, data url.Values) (SlackResponse, error) {
 	responseObject := SlackResponse{}
 
-    u, _ := url.ParseRequestURI(SlackApiUrl)
-    u.Path = path
-    urlStr := u.String()
+	u, _ := url.ParseRequestURI(SlackApiUrl)
+	u.Path = path
+	urlStr := u.String()
 
-    client := &http.Client{}
-    r, _ := http.NewRequest("POST", urlStr, bytes.NewBufferString(data.Encode()))
-    r.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	client := &http.Client{}
+	r, _ := http.NewRequest("POST", urlStr, bytes.NewBufferString(data.Encode()))
+	r.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
-    resp, err := client.Do(r)
-    if err != nil {
-    	return responseObject, err
+	resp, err := client.Do(r)
+	if err != nil {
+		return responseObject, err
 	}
 
-    responseBytes, err := ioutil.ReadAll(resp.Body)
-    if err != nil {
-    	return responseObject, err
+	responseBytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return responseObject, err
 	}
-    responseString := string(responseBytes)
-    if resp.StatusCode != 200 {
-    	fmt.Printf(responseString)
-    	return responseObject, errors.New(fmt.Sprintf("Expected 200 response code but got %v", resp.StatusCode))
-    }
+	responseString := string(responseBytes)
+	if resp.StatusCode != 200 {
+		fmt.Printf(responseString)
+		return responseObject, errors.New(fmt.Sprintf("Expected 200 response code but got %v", resp.StatusCode))
+	}
 
-    
-    parseErr := json.Unmarshal(responseBytes, &responseObject)
+	parseErr := json.Unmarshal(responseBytes, &responseObject)
 	if parseErr != nil {
 		return responseObject, parseErr
 	}
 	if !responseObject.Ok {
 		fmt.Printf("%s\n", responseString)
-    	return responseObject, errors.New("Slack API returned 'ok': false ")
+		return responseObject, errors.New("Slack API returned 'ok': false ")
 	}
 
-    return responseObject, nil
+	return responseObject, nil
 }
 
 // a wrapper for os.ExpandEnv that prevents single quoted strings
@@ -225,7 +242,7 @@ func ExpandEnv(s string) string {
 func RemoveDuplicatesUnordered(elements []string) []string {
 	encountered := map[string]bool{}
 
-	for v:= range elements {
+	for v := range elements {
 		encountered[elements[v]] = true
 	}
 
