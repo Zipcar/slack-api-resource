@@ -90,9 +90,10 @@ func TestMessage(t *testing.T) {
 		t.Errorf("Unexpected error %s", err.Error())
 	}
 	if len(data.Get("attachments")) == 0 {
-		t.Errorf("Expected attahments to exist")
+		t.Errorf("Expected attachments to exist")
 	}
 }
+
 func TestEmptyMessage(t *testing.T) {
 	input := common.ConcourseInput{}
 	input.Source.Method = "chat.postMessage"
@@ -105,7 +106,22 @@ func TestEmptyMessage(t *testing.T) {
 		t.Errorf("Unexpected error %s", err.Error())
 	}
 	if !empty {
-		t.Error("ValidateAndBuildPostBody didnt return an empty message of true when sent an emtpy message")
+		t.Error("ValidateAndBuildPostBody did not return an empty message of true when sent an empty message")
+	}
+}
+func TestJustTitle(t *testing.T) {
+	input := common.ConcourseInput{}
+	input.Source.Method = "chat.postMessage"
+	input.Params.AttachmentsFile = "just_title.json"
+	input.Source.Token = "validToken"
+	input.Params.Channel = "mychannel1"
+	_, _, err, empty := common.ValidateAndBuildPostBody(input)
+
+	if err != nil {
+		t.Errorf("Unexpected error %s", err.Error())
+	}
+	if empty {
+		t.Error("ValidateAndBuildPostBody returned empty when there was a title")
 	}
 }
 func TestValidateAndBuildBody_InvalidMethod(t *testing.T) {
