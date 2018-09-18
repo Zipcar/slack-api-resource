@@ -94,7 +94,7 @@ func TestMessage(t *testing.T) {
 	}
 }
 
-func TestEmptyMessage(t *testing.T) {
+func TestJustText(t *testing.T) {
 	input := common.ConcourseInput{}
 	input.Source.Method = "chat.postMessage"
 	input.Params.AttachmentsFile = "empty.json"
