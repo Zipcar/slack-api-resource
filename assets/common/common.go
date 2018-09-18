@@ -99,7 +99,7 @@ func ValidateAndBuildPostBodyPostMessage(input ConcourseInput) (data url.Values,
 		if len(attachments) != 0 {
 			hasText := false
 			for _, a := range attachments {
-				if len(a.Text) != 0 {
+				if (len(a.Text) != 0) || (len(a.Title) != 0) {
 					hasText = true
 				}
 			}
@@ -107,12 +107,6 @@ func ValidateAndBuildPostBodyPostMessage(input ConcourseInput) (data url.Values,
 				return data, err, true
 			}
 		}
-	}
-	switch "" {
-	case input.Source.Token:
-		return nil, errors.New(fmt.Sprintf("Token is a required param")), false
-	case input.Params.Channel:
-		return nil, errors.New(fmt.Sprintf("Channel is a required param")), false
 	}
 
 	data.Set("attachments", attachmentString)

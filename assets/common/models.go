@@ -28,7 +28,8 @@ type ConcourseInput struct {
 }
 
 type Attachment struct {
-	Text string `json:"text"`
+	Text  string `json:"text"`
+	Title string `json:"title"`
 }
 
 type ConcourseVersion struct {
