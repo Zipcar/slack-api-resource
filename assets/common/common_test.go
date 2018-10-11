@@ -23,7 +23,7 @@ func TestValidateAndBuildBody_FilesUpload_Content(t *testing.T) {
 		"channels": input.Params.Channels,
 	}
 
-	method, data, err, _ := common.ValidateAndBuildPostBody(input)
+	method, data, _, err := common.ValidateAndBuildPostBody(input)
 
 	if err != nil {
 		t.Errorf("Unexpected error, got: %s, want: %v.", err.Error(), nil)
@@ -84,7 +84,7 @@ func TestMessage(t *testing.T) {
 	input.Params.AttachmentsFile = "example.json"
 	input.Source.Token = "validToken"
 	input.Params.Channel = "mychannel1"
-	_, data, err, _ := common.ValidateAndBuildPostBody(input)
+	_, data, _, err := common.ValidateAndBuildPostBody(input)
 
 	if err != nil {
 		t.Errorf("Unexpected error %s", err.Error())
@@ -100,7 +100,7 @@ func TestJustText(t *testing.T) {
 	input.Params.AttachmentsFile = "empty.json"
 	input.Source.Token = "validToken"
 	input.Params.Channel = "mychannel1"
-	_, _, err, empty := common.ValidateAndBuildPostBody(input)
+	_, _, empty, err := common.ValidateAndBuildPostBody(input)
 
 	if err != nil {
 		t.Errorf("Unexpected error %s", err.Error())
@@ -115,7 +115,7 @@ func TestJustTitle(t *testing.T) {
 	input.Params.AttachmentsFile = "just_title.json"
 	input.Source.Token = "validToken"
 	input.Params.Channel = "mychannel1"
-	_, _, err, empty := common.ValidateAndBuildPostBody(input)
+	_, _, empty, err := common.ValidateAndBuildPostBody(input)
 
 	if err != nil {
 		t.Errorf("Unexpected error %s", err.Error())
@@ -130,7 +130,7 @@ func TestValidateAndBuildBody_InvalidMethod(t *testing.T) {
 
 	expectedErrorMessage := fmt.Sprintf("Method '%s' does not exist", input.Source.Method)
 
-	_, _, err, _ := common.ValidateAndBuildPostBody(input)
+	_, _, _, err := common.ValidateAndBuildPostBody(input)
 
 	if err == nil {
 		t.Errorf("Expected error, got nil")

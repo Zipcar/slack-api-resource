@@ -44,6 +44,7 @@ Currently only supports text data.
 1) content - the text that will be sent to the given channel(s) as a snippet and also stored as a file
 1) title - the title of the snippet and file
 1) file - the file, passed from a task or resource in the job, whose contents will be uploaded
+1) fallback_channel - an optional fallback channel to post to, in the case of channels archived or that do not exist
 
 Note that you can ONLY use `file` or `content`, not both
 
@@ -57,6 +58,7 @@ Currently only supports posting `attachments` property in the slack message, and
 1) icon_url (optional) - url for the icon to use in post
 1) username (optional) - user to post as
 1) link_names (optional) - enables user/channel linking in attachment
+1) fallback_channel - an optional fallback channel to post to, in the case of channels archived or that do not exist
 
 Note that you can ONLY use `attachments_file` or `attachments`, not both
 
@@ -87,9 +89,18 @@ and then calling the script of your choice. As an example, to execute posting a 
 
     cd /opt/resource
     export SLACK_TOKEN=REDACTED
-    export TEST_SLACK_CHANNEL=REDACTED
-    echo '[{ "title": "test attachment 1", "text": "test attachment 1 text" }]' > msg_attachments.json
-    echo "{\"source\": { \"token\" :\"${SLACK_TOKEN}\", \"method\": \"chat.postMessage\" }, \"params\": { \"attachments_file\": \"msg_attachments.json\", \"channel\" : \"${TEST_SLACK_CHANNEL}\", \"icon_url\": \"http://cl.ly/image/3e1h0H3H2s0P/concourse-logo.png\", \"username\": \"concourse\", \"link_names\": 1}}" | ./out .
+    export TEST_SLACK_CHANNEL=channel1
+    export TEST_FALLBACK_CHANNEL=fallbackchannel
+    echo '[{ "title": "test chat.postMessage attachment 1", "text": "test chat.postMessage attachment 1 text" }]' > msg_attachments.json
+    echo "{\"source\": { \"token\" :\"${SLACK_TOKEN}\", \"method\": \"chat.postMessage\" }, \"params\": { \"attachments_file\": \"msg_attachments.json\", \"channel\" : \"${TEST_SLACK_CHANNEL}\", \"fallback_channel\" : \"${TEST_FALLBACK_CHANNEL}\", \"icon_url\": \"http://cl.ly/image/3e1h0H3H2s0P/concourse-logo.png\", \"username\": \"concourse\", \"link_names\": 1}}" | ./out .
+    
+Another example using the 'files.upload' method:
+    
+    cd /opt/resource
+    export SLACK_TOKEN=REDACTED
+    export TEST_SLACK_CHANNELS=channel1,channel2,channel3
+    export TEST_FALLBACK_CHANNEL=fallbackchannel
+    echo "{\"source\": { \"token\" :\"${SLACK_TOKEN}\", \"method\": \"files.upload\" }, \"params\": { \"channels\" : \"${TEST_SLACK_CHANNELS}\", \"fallback_channel\" : \"${TEST_FALLBACK_CHANNEL}\", \"content\": \"some content\", \"title\": \"Title for files.upload\"}}" | ./out .
 
 ### Publishing to public docker registry
 
