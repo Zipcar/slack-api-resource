@@ -15,8 +15,9 @@ import (
 	"strings"
 )
 
+// Reusable constants
 const (
-	SlackApiUrl           = "https://slack.com"
+	SlackAPIURL           = "https://slack.com"
 	MethodFilesUpload     = "files.upload"
 	MethodChatPostmessage = "chat.postMessage"
 )
@@ -26,6 +27,7 @@ var slackMethodPaths = map[string]string{
 	MethodChatPostmessage: "api/chat.postMessage",
 }
 
+// GetInput ... Retrieves input from stdio
 func GetInput() (ConcourseInput, error) {
 	input := ConcourseInput{}
 
@@ -43,6 +45,7 @@ func GetInput() (ConcourseInput, error) {
 	return input, errors.New("no input received")
 }
 
+// HandleFatalError ... Exits with a non-zero status and prints error to stderr if error is not nil, does nothing otherwise
 func HandleFatalError(err error, msg string) {
 	if err == nil {
 		return
@@ -51,6 +54,7 @@ func HandleFatalError(err error, msg string) {
 	os.Exit(1)
 }
 
+// HandleNonFatalError ... Prints error to stderr if error is not nil, does nothing otherwise
 func HandleNonFatalError(err error, msg string) {
 	if err == nil {
 		return
@@ -58,25 +62,27 @@ func HandleNonFatalError(err error, msg string) {
 	fmt.Fprintln(os.Stderr, fmt.Sprintf("%s: %s", msg, err.Error()))
 }
 
-func ValidateAndBuildPostBody(input ConcourseInput) (method string, values url.Values, err error, emtpy bool) {
+// ValidateAndBuildPostBody ... Directs requests to appropriate delegates depending on if we deal with a file upload or a chat message
+func ValidateAndBuildPostBody(input ConcourseInput) (method string, values url.Values, emtpy bool, err error) {
 	var exists = false
 	if method, exists = slackMethodPaths[input.Source.Method]; exists == false {
-		return "", nil, errors.New(fmt.Sprintf("Method '%s' does not exist", input.Source.Method)), false
+		return "", nil, false, fmt.Errorf("Method '%s' does not exist", input.Source.Method)
 	}
 
 	switch input.Source.Method {
 	case MethodFilesUpload:
 		data, err := ValidateAndBuildPostBodyFilesUpload(input)
-		return method, data, err, false
+		return method, data, false, err
 	case MethodChatPostmessage:
-		data, err, empty := ValidateAndBuildPostBodyPostMessage(input)
-		return method, data, err, empty
+		data, empty, err := ValidateAndBuildPostBodyPostMessage(input)
+		return method, data, empty, err
 	default:
-		return "", nil, errors.New(fmt.Sprintf("No implementation for building POST body for method '%s'", input.Source.Method)), false
+		return "", nil, false, fmt.Errorf("No implementation for building POST body for method '%s'", input.Source.Method)
 	}
 }
 
-func ValidateAndBuildPostBodyPostMessage(input ConcourseInput) (data url.Values, err error, empty bool) {
+// ValidateAndBuildPostBodyPostMessage ... Processes 'chat.postMessage' request types
+func ValidateAndBuildPostBodyPostMessage(input ConcourseInput) (data url.Values, empty bool, err error) {
 	data = url.Values{}
 
 	attachmentsStringRaw, err := ValidatePostMessageAttachments(input.Params.Attachments, input.Params.AttachmentsFile)
@@ -88,9 +94,9 @@ func ValidateAndBuildPostBodyPostMessage(input ConcourseInput) (data url.Values,
 
 	switch "" {
 	case input.Source.Token:
-		return nil, errors.New(fmt.Sprintf("Token is a required param")), false
+		return nil, false, fmt.Errorf("Token is a required param")
 	case input.Params.Channel:
-		return nil, errors.New(fmt.Sprintf("Channel is a required param")), false
+		return nil, false, fmt.Errorf("Channel is a required param")
 	}
 
 	attachments := []Attachment{}
@@ -104,7 +110,7 @@ func ValidateAndBuildPostBodyPostMessage(input ConcourseInput) (data url.Values,
 				}
 			}
 			if !hasText {
-				return data, err, true
+				return data, true, err
 			}
 		}
 	}
@@ -114,42 +120,45 @@ func ValidateAndBuildPostBodyPostMessage(input ConcourseInput) (data url.Values,
 	data.Set("channel", input.Params.Channel)
 	data.Set("link_names", strconv.Itoa(input.Params.LinkNames))
 
-	if input.Params.IconUrl != "" {
-		data.Set("icon_url", input.Params.IconUrl)
+	if input.Params.IconURL != "" {
+		data.Set("icon_url", input.Params.IconURL)
 	}
 	if input.Params.Username != "" {
 		data.Set("username", input.Params.Username)
 	}
 
-	return data, nil, false
+	return data, false, nil
 }
 
+// ValidatePostMessageAttachments ... Validates 'chat.postMessage' request types
 func ValidatePostMessageAttachments(attachments string, attachmentsFile string) (string, error) {
 	if attachments != "" && attachmentsFile != "" {
-		err := errors.New(fmt.Sprintf("cannot supply both attachmentsFile and attachments for Chat.PostMessage"))
+		err := fmt.Errorf("cannot supply both attachmentsFile and attachments for Chat.PostMessage")
 		return "", err
 	}
 	if attachments == "" && attachmentsFile == "" {
-		err := errors.New(fmt.Sprintf("must supply one of attachmentsFile or attachments for Chat.PostMessage"))
+		err := fmt.Errorf("must supply one of attachmentsFile or attachments for Chat.PostMessage")
 		return "", err
 	}
 
 	if attachments != "" {
 		return attachments, nil
-	} else {
-		attachmentsStringRawBytes, err := ioutil.ReadFile(attachmentsFile)
-		if err != nil {
-			return "", err
-		}
-		attachmentsStringRaw := string(attachmentsStringRawBytes)
-		if attachmentsStringRaw == "" {
-			err := errors.New(fmt.Sprintf("attachments file is empty"))
-			return "", err
-		}
-		return attachmentsStringRaw, nil
 	}
+
+	attachmentsStringRawBytes, err := ioutil.ReadFile(attachmentsFile)
+	if err != nil {
+		return "", err
+	}
+	attachmentsStringRaw := string(attachmentsStringRawBytes)
+	if attachmentsStringRaw == "" {
+		err := fmt.Errorf("attachments file is empty")
+		return "", err
+	}
+
+	return attachmentsStringRaw, nil
 }
 
+// ValidateAndBuildPostBodyFilesUpload ... Processes 'files.upload' request types
 func ValidateAndBuildPostBodyFilesUpload(input ConcourseInput) (url.Values, error) {
 	data := url.Values{}
 
@@ -177,10 +186,11 @@ func ValidateAndBuildPostBodyFilesUpload(input ConcourseInput) (url.Values, erro
 	return data, nil
 }
 
-func PostToSlack(path string, data url.Values) (SlackResponse, error) {
+// PostToSlack ... Sends preconstructed message to post to Slack via Slack's HTTP API
+func PostToSlack(path string, data url.Values, fallbackChannel string, tryBackupOnFailure bool) (SlackResponse, error) {
 	responseObject := SlackResponse{}
 
-	u, _ := url.ParseRequestURI(SlackApiUrl)
+	u, _ := url.ParseRequestURI(SlackAPIURL)
 	u.Path = path
 	urlStr := u.String()
 
@@ -200,23 +210,40 @@ func PostToSlack(path string, data url.Values) (SlackResponse, error) {
 	responseString := string(responseBytes)
 	if resp.StatusCode != 200 {
 		fmt.Fprintf(os.Stderr, responseString)
-		return responseObject, errors.New(fmt.Sprintf("Expected 200 response code but got %v", resp.StatusCode))
+		return responseObject, fmt.Errorf("Expected 200 response code but got %v", resp.StatusCode)
 	}
 
 	parseErr := json.Unmarshal(responseBytes, &responseObject)
 	if parseErr != nil {
 		return responseObject, parseErr
 	}
+
 	if !responseObject.Ok {
-		fmt.Fprintf(os.Stderr, "%s\n", responseString)
-		return responseObject, errors.New("Slack API returned 'ok': false ")
+		return handleSlackPostResponseNotOkError(responseObject, responseString, fallbackChannel, path, data, tryBackupOnFailure)
 	}
 
 	return responseObject, nil
 }
 
-// a wrapper for os.ExpandEnv that prevents single quoted strings
-// of the type '$something' from being interpreted as env variables
+func handleSlackPostResponseNotOkError(response SlackResponse, responseString string, fallbackChannel string, path string,
+	data url.Values, tryBackupOnFailure bool) (SlackResponse, error) {
+	// Is our error related to an invalid channel? Do we have a backup channel defined? If so use it and try again...
+	if (response.Error == "channel_not_found" || response.Error == "invalid_channel" || response.Error == "is_archived") &&
+		strings.TrimSpace(fallbackChannel) != "" && tryBackupOnFailure {
+		if data.Get("channel") != "" {
+			data.Set("channel", fallbackChannel)
+			return PostToSlack(path, data, fallbackChannel, false)
+		} else if data.Get("channels") != "" {
+			data.Set("channels", fallbackChannel)
+			return PostToSlack(path, data, fallbackChannel, false)
+		}
+	}
+
+	fmt.Fprintf(os.Stderr, "%s\n", responseString)
+	return response, errors.New("Slack API returned 'ok': false ")
+}
+
+// ExpandEnv ... Wrapper for os.ExpandEnv that prevents single quoted strings of the type '$something' from being interpreted as env variables
 func ExpandEnv(s string) string {
 	valueDictionary := make(map[string]string)
 
@@ -239,6 +266,7 @@ func ExpandEnv(s string) string {
 	return s
 }
 
+// RemoveDuplicatesUnordered ... Essentially converts a list to a set
 func RemoveDuplicatesUnordered(elements []string) []string {
 	encountered := map[string]bool{}
 

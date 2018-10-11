@@ -13,10 +13,10 @@ func main() {
 	input, err := common.GetInput()
 	common.HandleFatalError(err, "Error getting concourse input")
 
-	method, data, err, empty := common.ValidateAndBuildPostBody(input)
+	method, data, empty, err := common.ValidateAndBuildPostBody(input)
 	common.HandleFatalError(err, "Error while validating input")
 	if !empty {
-		_, err = common.PostToSlack(method, data)
+		_, err = common.PostToSlack(method, data, input.Params.FallbackChannel, true)
 		common.HandleFatalError(err, "Error while posting to slack")
 	}
 
