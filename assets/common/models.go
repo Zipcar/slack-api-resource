@@ -46,9 +46,9 @@ type ConcourseVersion struct {
 
 // SlackResponse ... Defines the output format from the Slack API
 type SlackResponse struct {
-	Ok   bool              `json:"ok"`
-	File SlackFileResponse `json:"file"`
-	Error string           `json:error`
+	Ok    bool              `json:"ok"`
+	File  SlackFileResponse `json:"file"`
+	Error string            `json:error`
 }
 
 // SlackFileResponse ... Defines the output format for the Slack file portion of the Slack API response
